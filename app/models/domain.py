@@ -56,7 +56,7 @@ class Task(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     title: str
     raw_content: Optional[str] = Field(default=None)
-    project_id: uuid.UUID = Field(foreign_key="projects.id")
+    project_id: uuid.UUID = Field(foreign_key="projects.id", index=True)
     
     project: Optional[Project] = Relationship(back_populates="tasks")
     subtasks: List["SubTask"] = Relationship(back_populates="task", cascade_delete=True)
@@ -66,9 +66,9 @@ class SubTask(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     title: str
     description: str
-    status: TaskStatus = Field(default=TaskStatus.TODO)
+    status: TaskStatus = Field(default=TaskStatus.TODO, index=True)
     
-    task_id: uuid.UUID = Field(foreign_key="tasks.id")
+    task_id: uuid.UUID = Field(foreign_key="tasks.id", index=True)
     assigned_to_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
     evidence_url: Optional[str] = Field(default=None) 
     

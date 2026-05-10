@@ -1,5 +1,5 @@
 # app/schemas/project_schema.py
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 import uuid
 from app.models.domain import RoleEnum
@@ -12,15 +12,13 @@ class MemberInvite(BaseModel):
     role: RoleEnum = RoleEnum.MEMBER
 
 class ProjectResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     name: str
-    
-    class Config:
-        from_attributes = True
 
 class ProjectMemberResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     username: str
     role: RoleEnum
-
-    class Config:
-        from_attributes = True

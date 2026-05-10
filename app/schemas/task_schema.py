@@ -1,5 +1,5 @@
 # app/schemas/task_schema.py
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List
 import uuid
 
@@ -12,9 +12,8 @@ class TaskAIResponse(BaseModel):
     subtasks: List[SubTaskAIResponse]
 
 class TaskResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     title: str
     project_id: uuid.UUID
-
-    class Config:
-        from_attributes = True
