@@ -11,6 +11,10 @@ class MemberInvite(BaseModel):
     username: str
     role: RoleEnum = RoleEnum.MEMBER
 
+
+class MemberRoleUpdate(BaseModel):
+    role: RoleEnum
+
 class ProjectResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

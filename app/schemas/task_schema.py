@@ -1,6 +1,7 @@
 # app/schemas/task_schema.py
 from pydantic import BaseModel, ConfigDict
 from typing import List
+from datetime import datetime
 import uuid
 
 class SubTaskAIResponse(BaseModel):
@@ -16,4 +17,5 @@ class TaskResponse(BaseModel):
 
     id: uuid.UUID
     title: str
+    deadline: datetime | None = None
     project_id: uuid.UUID

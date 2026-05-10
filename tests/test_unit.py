@@ -1,5 +1,7 @@
 import pytest
 import uuid
+import io
+import zipfile
 from unittest.mock import AsyncMock, MagicMock, patch
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -7,6 +9,28 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 # Unit Tests untuk PDFExtractor
 # ─────────────────────────────────────────────────────────────
 from app.services.pdf_extractor import PDFExtractor
+from app.services.instruction_extractor import InstructionExtractor
+
+
+def test_instruction_extractor_text_only():
+        text = InstructionExtractor.extract_text(None, None, "Buat halaman login dan dashboard")
+        assert "halaman login" in text
+
+
+def test_instruction_extractor_docx_bytes():
+        docx_bytes = io.BytesIO()
+        with zipfile.ZipFile(docx_bytes, "w") as archive:
+                archive.writestr(
+                        "word/document.xml",
+                        """<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+                        <w:document xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main'>
+                            <w:body>
+                                <w:p><w:r><w:t>Instruksi DOCX</w:t></w:r></w:p>
+                            </w:body>
+                        </w:document>""",
+                )
+        extracted = InstructionExtractor.extract_text("instructions.docx", docx_bytes.getvalue(), None)
+        assert "Instruksi DOCX" in extracted
 
 def test_pdf_extractor_invalid_bytes():
     """PDFExtractor harus raise HTTPException jika bytes bukan PDF valid."""
@@ -60,8 +84,8 @@ async def test_register_user_success():
 
     result = await AuthService.register_user(mock_db, user_data)
 
-    # Pastikan db.add dan db.commit dipanggil
-    mock_db.add.assert_called_once()
+    # Pastikan user dan activity log sama-sama disimpan
+    assert mock_db.add.call_count == 2
     mock_db.commit.assert_called_once()
     assert result.username == "newuser"
 

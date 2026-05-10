@@ -2,7 +2,7 @@
 from fastapi import HTTPException, status
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.models.domain import User
+from app.models.domain import User, ActivityLog
 from app.schemas.auth_schema import UserCreate
 from app.core.security import get_password_hash, verify_password, create_access_token
 
@@ -26,6 +26,16 @@ class AuthService:
         
         # 3. Simpan ke database
         session.add(new_user)
+        await session.flush()
+
+        session.add(
+            ActivityLog(
+                action="USER_REGISTERED",
+                details=f"User {new_user.username} berhasil melakukan registrasi",
+                user_id=new_user.id,
+                project_id=None,
+            )
+        )
         await session.commit()
         await session.refresh(new_user)
         

@@ -26,7 +26,7 @@ class TaskStatus(str, enum.Enum):
 
 # --- TABLES ---
 class Project(SQLModel, table=True):
-    __tablename__ = "projects"
+    __tablename__ = "projects"  # type: ignore[assignment]
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str
     created_at: datetime = Field(default_factory=utc_now)
@@ -35,7 +35,7 @@ class Project(SQLModel, table=True):
     tasks: List["Task"] = Relationship(back_populates="project")
 
 class ProjectMember(SQLModel, table=True):
-    __tablename__ = "project_members"
+    __tablename__ = "project_members"  # type: ignore[assignment]
     user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True)
     project_id: uuid.UUID = Field(foreign_key="projects.id", primary_key=True)
     role: RoleEnum = Field(default=RoleEnum.MEMBER)
@@ -44,7 +44,7 @@ class ProjectMember(SQLModel, table=True):
     project: Project = Relationship(back_populates="members")
 
 class User(SQLModel, table=True):
-    __tablename__ = "users"
+    __tablename__ = "users"  # type: ignore[assignment]
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     username: str = Field(index=True, unique=True)
     password_hash: str
@@ -52,17 +52,19 @@ class User(SQLModel, table=True):
     project_roles: List[ProjectMember] = Relationship(back_populates="user")
 
 class Task(SQLModel, table=True):
-    __tablename__ = "tasks"
+    __tablename__ = "tasks"  # type: ignore[assignment]
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     title: str
     raw_content: Optional[str] = Field(default=None)
+    deadline: Optional[datetime] = Field(default=None, index=True)
+    is_published: bool = Field(default=False, index=True)
     project_id: uuid.UUID = Field(foreign_key="projects.id", index=True)
     
     project: Optional[Project] = Relationship(back_populates="tasks")
     subtasks: List["SubTask"] = Relationship(back_populates="task", cascade_delete=True)
 
 class SubTask(SQLModel, table=True):
-    __tablename__ = "subtasks"
+    __tablename__ = "subtasks"  # type: ignore[assignment]
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     title: str
     description: str
@@ -74,12 +76,13 @@ class SubTask(SQLModel, table=True):
     
     ai_rejection_reason: Optional[str] = Field(default=None)
     appeal_reason: Optional[str] = Field(default=None)
+    human_rejection_reason: Optional[str] = Field(default=None)
     approved_by_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
     
     task: Optional[Task] = Relationship(back_populates="subtasks")
 
 class ActivityLog(SQLModel, table=True):
-    __tablename__ = "activity_logs"
+    __tablename__ = "activity_logs"  # type: ignore[assignment]
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     action: str 
     details: str

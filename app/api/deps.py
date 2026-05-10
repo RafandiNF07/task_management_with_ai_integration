@@ -32,10 +32,11 @@ async def get_current_user(
     try:
         # 1. Dekode token menggunakan Secret Key
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
+        user_id_raw = payload.get("sub")
         
-        if user_id is None:
+        if user_id_raw is None:
             raise credentials_exception
+        user_id = str(user_id_raw)
             
     except jwt.PyJWTError:
         raise credentials_exception
@@ -75,4 +76,24 @@ async def get_current_project_leader(
             detail="Hanya Leader yang dapat mengakses fitur ini."
         )
     
+    return membership
+
+async def get_project_membership(
+    project_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> ProjectMember:
+    stmt = select(ProjectMember).where(
+        ProjectMember.project_id == project_id,
+        ProjectMember.user_id == current_user.id
+    )
+    result = await db.exec(stmt)
+    membership = result.first()
+
+    if not membership:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Anda bukan anggota proyek ini."
+        )
+
     return membership
