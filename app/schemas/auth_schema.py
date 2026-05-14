@@ -14,7 +14,16 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     username: str
 
+
 # Schema untuk Token JWT
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+    # Optional refresh token (jika ada)
+    refresh_token: str | None = None
+
+
+# Request payload untuk refresh token
+class RefreshRequest(BaseModel):
+    refresh_token: str
+    refresh_token: str | None = None

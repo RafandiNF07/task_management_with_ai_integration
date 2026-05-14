@@ -89,3 +89,16 @@ class ActivityLog(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now)
     user_id: uuid.UUID = Field(foreign_key="users.id")
     project_id: Optional[uuid.UUID] = Field(default=None, foreign_key="projects.id")
+
+
+class RefreshToken(SQLModel, table=True):
+    __tablename__ = "refresh_tokens"  # type: ignore[assignment]
+    __table_args__ = ({"extend_existing": True},)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    token: str
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    created_at: datetime = Field(default_factory=utc_now)
+    expires_at: datetime
+    revoked: bool = Field(default=False, index=True)
+
+

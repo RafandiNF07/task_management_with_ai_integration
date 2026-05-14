@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.database import get_db
-from app.schemas.auth_schema import UserCreate, UserResponse, TokenResponse
+from app.schemas.auth_schema import UserCreate, UserResponse, TokenResponse, RefreshRequest
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -22,5 +22,27 @@ async def login(
     """Login untuk mendapatkan JWT Token."""
     # OAuth2PasswordRequestForm secara default menyimpan username di atribut 'username' dan 'password'
     user_data = UserCreate(username=form_data.username, password=form_data.password)
-    token = await AuthService.authenticate_user(db, user_data)
-    return {"access_token": token, "token_type": "bearer"}
+    tokens = await AuthService.authenticate_user(db, user_data)
+    return {"access_token": tokens["access_token"], "refresh_token": tokens["refresh_token"], "token_type": "bearer"}
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh(
+    payload: RefreshRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Mendapatkan access token baru menggunakan refresh token."""
+    new_access = await AuthService.refresh_access_token(db, payload.refresh_token)
+    return {"access_token": new_access, "token_type": "bearer"}
+
+
+@router.post("/logout")
+async def logout(
+    payload: RefreshRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Revoke a refresh token (logout)."""
+    revoked = await AuthService.revoke_refresh_token(db, payload.refresh_token)
+    if not revoked:
+        return {"status": "not_found_or_already_revoked"}
+    return {"status": "revoked"}
