@@ -44,10 +44,7 @@ class ReportService:
 			if not resolved.exists():
 				return ""
 
-			mime_type, _ = mimetypes.guess_type(str(resolved))
-			mime_type = mime_type or "image/png"
-			encoded = base64.b64encode(resolved.read_bytes()).decode("ascii")
-			return f"data:{mime_type};base64,{encoded}"
+			return f"file://{resolved.absolute()}"
 
 		completed_rows = []
 		for subtask in completed_subtasks:

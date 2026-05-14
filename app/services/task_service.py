@@ -8,8 +8,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException
 
+import uuid
+
 from app.models.domain import Task, SubTask, ActivityLog, TaskStatus, ProjectMember, RoleEnum
 from app.core.database import engine, AsyncSessionLocal
+from app.core.config import settings
 from app.schemas.task_schema import TaskAIResponse
 
 # ─── Lazy singleton agar tidak crash saat import tanpa .env (e.g. pytest) ───
@@ -303,13 +306,30 @@ class TaskService:
                 if not subtask:
                     return
 
-                if audit_result["is_valid"] and audit_result["confidence_score"] >= 70:
-                    subtask.status = TaskStatus.PENDING_HUMAN_QC
-                    subtask.ai_rejection_reason = None
-                    log_action = "TASK_APPROVED_BY_AI"
+                # Configurable auto-approve threshold
+                threshold = getattr(settings, "AI_AUTO_APPROVE_CONFIDENCE", 85)
+
+                if audit_result["is_valid"]:
+                    # If confidence is high enough, auto-complete the subtask
+                    if audit_result.get("confidence_score", 0) >= threshold:
+                        subtask.status = TaskStatus.DONE
+                        subtask.ai_rejection_reason = None
+                        # Mark approved_by_id with system sentinel to indicate auto-approval
+                        try:
+                            subtask.approved_by_id = uuid.UUID(
+                                settings.AI_AUTO_APPROVE_SYSTEM_USER_ID
+                            )
+                        except Exception:
+                            subtask.approved_by_id = None
+                        log_action = "TASK_AUTO_APPROVED_BY_AI"
+                    else:
+                        # AI thinks it's valid but confidence is not high — send to human QC
+                        subtask.status = TaskStatus.PENDING_HUMAN_QC
+                        subtask.ai_rejection_reason = None
+                        log_action = "TASK_APPROVED_BY_AI_LOW_CONFIDENCE"
                 else:
                     subtask.status = TaskStatus.REJECTED_BY_AI
-                    subtask.ai_rejection_reason = audit_result["feedback"]
+                    subtask.ai_rejection_reason = audit_result.get("feedback")
                     log_action = "TASK_REJECTED_BY_AI"
 
                 if subtask.assigned_to_id is not None:

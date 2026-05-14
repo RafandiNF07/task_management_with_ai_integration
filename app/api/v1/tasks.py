@@ -29,6 +29,12 @@ async def upload_and_parse_task(
     if membership.role not in {RoleEnum.LEADER, RoleEnum.ASSISTANT}:
         raise HTTPException(status_code=403, detail="Hanya Leader atau Asisten yang dapat mengunggah instruksi")
 
+    if file:
+        # Limit instruction file to 10MB
+        content_length = file.size if hasattr(file, "size") else None
+        if content_length and content_length > 10 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="File instruksi terlalu besar (Max 10MB)")
+            
     file_bytes = await file.read() if file else None
     filename = file.filename if file else None
     text_content = InstructionExtractor.extract_text(filename, file_bytes, instruction_text)
@@ -104,39 +110,7 @@ async def claim_subtask(
         "message": f"Tugas '{subtask.title}' berhasil di-claim"
     }
 
-@router.post("/subtasks/{subtask_id}/submit-and-audit")
-async def submit_and_audit(
-    subtask_id: uuid.UUID,
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Submit bukti/evidence untuk subtask dan trigger audit otomatis oleh AI secara background."""
-    # Guard: filename bisa None jika klien tidak mengirim nama file
-    if not file.filename or not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-        raise HTTPException(status_code=400, detail="Bukti harus berupa gambar (PNG/JPG)")
-
-    subtask = await TaskService.get_subtask(db, subtask_id)
-    if not subtask:
-        raise HTTPException(status_code=404, detail="Subtask tidak ditemukan")
-
-    if subtask.assigned_to_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Hanya anggota yang mengerjakan subtask ini yang dapat mengunggah bukti")
-
-    image_data = await file.read()
-    
-    subtask = await TaskService.start_audit_process(db, subtask_id, image_data)
-
-    # Tambahkan tugas ke background worker FastAPI
-    background_tasks.add_task(
-        TaskService.process_background_audit,
-        subtask_id=subtask.id,
-        subtask_desc=subtask.description,
-        image_bytes=image_data
-    )
-    
     return {
-        "status": subtask.status,
-        "message": "Bukti berhasil diunggah. AI sedang melakukan audit di background."
+        "status": "success",
+        "message": f"Tugas '{subtask.title}' berhasil di-claim"
     }

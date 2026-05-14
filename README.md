@@ -332,12 +332,21 @@ curl -X POST http://localhost:8000/api/v1/tasks/subtasks/$SUBTASK_ID/submit-and-
 Gemini.audit_evidence(description, image_bytes)
 → { is_valid: bool, confidence_score: 0-100, feedback: str }
 
-Jika valid (is_valid=true):
-  Status: DONE
+Behavior (Option B - Auto-approve high-confidence):
 
-Jika invalid (is_valid=false):
-  Status: REJECTED_BY_AI
-  ai_rejection_reason: feedback dari AI
+- If `is_valid=true` and `confidence_score >= AI_AUTO_APPROVE_CONFIDENCE` (default 85):
+  - Status: DONE (auto-approved by AI)
+
+- If `is_valid=true` but `confidence_score < AI_AUTO_APPROVE_CONFIDENCE`:
+  - Status: PENDING_HUMAN_QC (needs manual QC review)
+
+- If `is_valid=false`:
+  - Status: REJECTED_BY_AI
+  - `ai_rejection_reason`: feedback dari AI
+
+The threshold is configurable via environment variable `AI_AUTO_APPROVE_CONFIDENCE` (0-100). Default: 85.
+
+Implementation note: when a subtask is auto-approved by the AI, the system sets `approved_by_id` to a sentinel system UUID (`AI_AUTO_APPROVE_SYSTEM_USER_ID`, default `00000000-0000-0000-0000-000000000000`) so callers can distinguish auto-approval from human approvals.
 ```
 
 ---
