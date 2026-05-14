@@ -125,14 +125,15 @@ flowchart TD
     G --> H[Member Claim SubTask]
     H --> I[Submit Evidence]
     I --> J[AI Audit]
-    J -->|Pass| K[Status: DONE]
+    J -->|Pass| K[Status: PENDING_HUMAN_QC]
     J -->|Fail| L[Status: REJECTED_BY_AI]
     L --> M[Member Appeal]
     M --> N[Leader / QC Review]
-    N -->|Approve| K
-    N -->|Reject| O[Back to TODO]
-    O --> H
-    K --> P[Activity Log + PDF Report]
+    K --> N
+    N -->|Approve| O[Status: DONE]
+    N -->|Reject| Q[Back to TODO]
+    Q --> H
+    O --> P[Activity Log + PDF Report]
 ```
 
 ## Quick Start
